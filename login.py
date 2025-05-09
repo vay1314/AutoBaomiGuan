@@ -1,22 +1,32 @@
 import requests
-import execjs
+import rsa
+import base64
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import PKCS1_v1_5
 
 def encrypt(data):
-    # 加载JavaScript代码
-    with open('encrypt.js', 'r',encoding='utf-8') as file:
-        js_code = file.read()
-
-    # 初始化一个 JS 上下文
-    ctx = execjs.compile(js_code)
-    key_url ='https://www.baomi.org.cn/portal/main-api/getPublishKey.do'
+    # 获取公钥
+    key_url = 'https://www.baomi.org.cn/portal/main-api/getPublishKey.do'
     response = requests.get(key_url)
     public_key = response.json()['data']
-    # 调用 JavaScript 中的 encrypt 函数
-    encrypted_data = ctx.call('encrypt', data, public_key)
-    return encrypted_data
+    
+    # 将Base64编码的公钥转换为PEM格式
+    pem_key = "-----BEGIN PUBLIC KEY-----\n"
+    # 每64个字符添加一个换行符
+    for i in range(0, len(public_key), 64):
+        pem_key += public_key[i:i+64] + "\n"
+    pem_key += "-----END PUBLIC KEY-----"
+    
+    # 将PEM格式的公钥转换为RSA对象
+    key = RSA.import_key(pem_key)
+    # 创建加密器
+    cipher = PKCS1_v1_5.new(key)
+    # 加密数据
+    encrypted_data = cipher.encrypt(data.encode())
+    # 将加密后的数据转换为base64字符串
+    return base64.b64encode(encrypted_data).decode()
 
-
-def login(loginName,passWord):
+def login(loginName, passWord):
     login_url = "https://www.baomi.org.cn/portal/main-api/loginInNew.do"
     payload = {
         "loginName": encrypt(loginName),

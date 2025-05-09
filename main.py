@@ -113,6 +113,9 @@ def watch_videos():
                 for sub_dir in sub_directories:
                     executor.submit(process_video, course_packet_id, sub_dir['SYS_UUID'])
         print('视频观看完成!')
+        # 获取并打印已获得学时
+        user_info = get_user_info(token, course_packet_id)
+        print(f"已获得学时: {user_info['totalGrade']}\n")
     except requests.exceptions.RequestException as e:
         logging.error(f"获取目录列表失败: {e}")
 
@@ -124,6 +127,12 @@ def take_exam():
     finish_exam(course_packet_id)
     print("考试完成!")
 
+# 获取用户信息
+def get_user_info(token, course_packet_id):
+    url = f"https://www.baomi.org.cn/portal/main-api/v2/coursePacket/getCourseUserStatistic?coursePacketId={course_packet_id}&token={token}"
+    response = requests.get(url).json()
+    return response['data']
+
 if __name__ == '__main__':
     # 使用配置文件中的登录信息
     token = login.login(config.loginName, config.passWord)
@@ -133,11 +142,19 @@ if __name__ == '__main__':
         'token': token,
         'Content-Type': 'application/json'
     }
+
+    # 获取用户信息
+    user_info = get_user_info(token, config.course_packet_id)
+    
+    print("\n===== 保密观自动化工具 =====")
+    print(f"课程名称: {user_info['courseName']}")
+    print(f"用户昵称: {user_info['loginName']}")
+    print("=" * 30 + "\n")
     
     while True:
-        print("\n===== 保密观自动化工具 =====")
-        print("1. 刷课视频")
-        print("2. 完成考试")
+        print("请选择功能：")
+        print("1. 自动刷课视频")
+        print("2. 自动完成考试")
         print("3. 退出程序")
         
         choice = input("请选择操作 (1-3): ")

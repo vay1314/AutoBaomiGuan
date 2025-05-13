@@ -5,7 +5,8 @@ from concurrent.futures import ThreadPoolExecutor
 import json 
 import time
 import login
-import config  # 导入配置文件
+import config
+import random
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -63,17 +64,57 @@ def save_course_package(course_id, resource_id, resource_directory_id, resource_
 
 # 自动完成考试
 def save_exam_result():
+    # 解析配置中的考试答案
+    exam_results = json.loads(config.exam_result)
+    
+    # 获取期望的分数
+    while True:
+        try:
+            target_score = int(input("满分 100分，90分以上为优秀， 60-89分为合格\n请输入期望的分数（0-100，每题4分,共25题）："))
+            if 0 <= target_score <= 100 and target_score % 4 == 0:
+                break
+            else:
+                print("\n分数必须是0-100之间的4的倍数！\n例如：92, 96, 100\n")
+        except ValueError:
+            print("请输入有效的数字！")
+    
+    # 计算需要答对的题目数量
+    correct_count = target_score // 4
+    
+    # 随机选择要答对的题目
+    all_questions = list(range(len(exam_results)))
+    correct_questions = random.sample(all_questions, correct_count)
+    
+    # 修改答案
+    for i, question in enumerate(exam_results):
+        if i in correct_questions:
+            # 答对的题目使用标准答案
+            question['userAnswer'] = question['standardAnswer']
+            question['userScoreRate'] = '100%'
+        else:
+            # 答错的题目根据题型选择错误答案
+            if question['viewTypeId'] == 3:  # 判断题
+                # 判断题只在A和B之间选择
+                wrong_options = ['A', 'B']
+                wrong_options.remove(question['standardAnswer'])
+                question['userAnswer'] = wrong_options[0]
+            else:  # 单选题
+                # 单选题在A、B、C、D中选择
+                wrong_options = ['A', 'B', 'C', 'D']
+                wrong_options.remove(question['standardAnswer'])
+                question['userAnswer'] = random.choice(wrong_options)
+            question['userScoreRate'] = '0%'
+    
+    # 发送请求
     url = "https://www.baomi.org.cn/portal/main-api/v2/activity/exam/saveExamResultJc.do"
     payload = json.dumps({
         "examId": config.exam_id,
-        "examResult": config.exam_result,
+        "examResult": json.dumps(exam_results).replace('"', '\\"'),
         "startDate": config.exam_start_date,
         "randomId": config.exam_random_id
     })
     response = requests.request("POST", url, headers=headers, data=payload)
-
     print(response.text)
-
 
 def finish_exam(course_packet_id):
     url = f"https://www.baomi.org.cn/portal/main-api/v2/studyTime/updateCoursePackageExamInfo.do?courseId={course_packet_id}&orgId=&isExam=1&isCertificate=0&examResult=100"

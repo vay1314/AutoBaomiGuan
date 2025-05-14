@@ -104,16 +104,23 @@ def save_exam_result():
                 wrong_options.remove(question['standardAnswer'])
                 question['userAnswer'] = random.choice(wrong_options)
             question['userScoreRate'] = '0%'
+
+        if 'parentId' not in question:
+            question['parentId'] = '0'
+        if 'resultFlag' not in question:
+            question['resultFlag'] = 0
+        if 'subCount' not in question:
+            question['subCount'] = 0
     
     # 发送请求
     url = "https://www.baomi.org.cn/portal/main-api/v2/activity/exam/saveExamResultJc.do"
-    payload = json.dumps({
+    payload = {
         "examId": config.exam_id,
-        "examResult": json.dumps(exam_results).replace('"', '\\"'),
+        "examResult": json.dumps(exam_results),  # 将数组转换为JSON字符串
         "startDate": config.exam_start_date,
         "randomId": config.exam_random_id
-    })
-    response = requests.request("POST", url, headers=headers, data=payload)
+    }
+    response = requests.request("POST", url, headers=headers, json=payload)
     print(response.text)
 
 def finish_exam(course_packet_id):

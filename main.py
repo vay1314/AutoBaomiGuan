@@ -178,8 +178,24 @@ def take_exam():
 # 获取用户信息
 def get_user_info(token, course_packet_id):
     url = f"https://www.baomi.org.cn/portal/main-api/v2/coursePacket/getCourseUserStatistic?coursePacketId={course_packet_id}&token={token}"
-    response = requests.get(url).json()
-    return response['data']
+    try:
+        response = requests.get(url).json()
+        if response['status'] == 0 and response['data'] is None:
+            # Return default values when data is null
+            return {
+                'courseName': '2025年度保密教育线上培训',
+                'loginName': '未知用户',
+                'totalGrade': 0
+            }
+        return response['data']
+    except Exception as e:
+        logging.error(f"获取用户信息失败: {e}")
+        # Return default values on error
+        return {
+            'courseName': '2025年度保密教育线上培训',
+            'loginName': '未知用户',
+            'totalGrade': 0
+        }
 
 if __name__ == '__main__':
     # 使用配置文件中的登录信息

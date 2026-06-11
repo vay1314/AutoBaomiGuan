@@ -2,6 +2,18 @@ name: Build Windows EXE
 
 on:
   workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Release tag name, for example v1.0.0. Leave empty to use win-ui-${{ github.run_number }}."
+        required: false
+        type: string
+      release_name:
+        description: "Release title. Leave empty to use Windows UI Build ${{ github.run_number }}."
+        required: false
+        type: string
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -34,6 +46,23 @@ jobs:
             --name AutoBaomiGuanUI `
             ui.py
 
+      - name: Resolve release metadata
+        id: release_meta
+        shell: pwsh
+        run: |
+          $tagName = "${{ inputs.tag_name }}"
+          if ([string]::IsNullOrWhiteSpace($tagName)) {
+            $tagName = "win-ui-${{ github.run_number }}"
+          }
+
+          $releaseName = "${{ inputs.release_name }}"
+          if ([string]::IsNullOrWhiteSpace($releaseName)) {
+            $releaseName = "Windows UI Build ${{ github.run_number }}"
+          }
+
+          "tag_name=$tagName" >> $env:GITHUB_OUTPUT
+          "release_name=$releaseName" >> $env:GITHUB_OUTPUT
+
       - name: Upload executable artifact
         uses: actions/upload-artifact@v4
         with:
@@ -41,3 +70,12 @@ jobs:
           path: dist/AutoBaomiGuanUI.exe
           if-no-files-found: error
           retention-days: 30
+
+      - name: Upload executable to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release_meta.outputs.tag_name }}
+          name: ${{ steps.release_meta.outputs.release_name }}
+          files: dist/AutoBaomiGuanUI.exe
+          generate_release_notes: true
+          fail_on_unmatched_files: true

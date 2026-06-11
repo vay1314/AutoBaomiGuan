@@ -38,6 +38,20 @@
    | 4 | 完成课程考试（自动答题） |
    | 0 | 退出程序 |
 
+## Windows UI 工具
+
+Windows 下也可以使用图形界面运行：
+
+```bash
+python ui.py
+```
+
+或直接下载构建的AutoBaomiGuanUI.exe
+
+界面截图：
+
+![Windows UI](ScreenShot/ScreenShot.png)
+
 ## 登录说明
 
 启动时按以下优先级尝试登录：
@@ -80,6 +94,8 @@ accounts = [
 ├── login.py           # 登录与 RSA 加密
 ├── course.py          # 课程与考试逻辑
 ├── main.py            # 程序入口
+├── ui.py              # Windows 图形界面入口
+├── ScreenShot/        # 界面截图
 └── requirements.txt   # Python 依赖
 ```
 

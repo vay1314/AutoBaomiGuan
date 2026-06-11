@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       tag_name:
-        description: "Release tag name, for example v1.0.0. Leave empty to use win-ui-${{ github.run_number }}."
+        description: "Release tag name, for example v1.0.0. Leave empty to auto-generate one."
         required: false
         type: string
       release_name:
-        description: "Release title. Leave empty to use Windows UI Build ${{ github.run_number }}."
+        description: "Release title. Leave empty to auto-generate one."
         required: false
         type: string
 

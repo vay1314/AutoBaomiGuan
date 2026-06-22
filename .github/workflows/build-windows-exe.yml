@@ -1,0 +1,82 @@
+name: 构建 Windows EXE
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "发布版本号"
+        required: false
+        type: string
+      release_name:
+        description: "发布标题"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: 构建图形界面可执行文件
+    runs-on: windows-latest
+
+    steps:
+      - name: 检出仓库代码
+        uses: actions/checkout@v4
+
+      - name: 配置 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: 安装项目依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: 打包可执行文件
+        run: |
+          pyinstaller `
+            --noconfirm `
+            --clean `
+            --onefile `
+            --windowed `
+            --name AutoBaomiGuanUI `
+            --collect-all ruamel.yaml `
+            gui.py
+
+      - name: 解析发布信息
+        id: release_meta
+        shell: pwsh
+        run: |
+          $tagName = "${{ inputs.tag_name }}"
+          if ([string]::IsNullOrWhiteSpace($tagName)) {
+            $tagName = "win-ui-${{ github.run_number }}"
+          }
+
+          $releaseName = "${{ inputs.release_name }}"
+          if ([string]::IsNullOrWhiteSpace($releaseName)) {
+            $releaseName = "Windows 界面构建 ${{ github.run_number }}"
+          }
+
+          "tag_name=$tagName" >> $env:GITHUB_OUTPUT
+          "release_name=$releaseName" >> $env:GITHUB_OUTPUT
+
+      - name: 上传可执行文件构件
+        uses: actions/upload-artifact@v4
+        with:
+          name: AutoBaomiGuanUI-windows
+          path: dist/AutoBaomiGuanUI.exe
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: 发布到 GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release_meta.outputs.tag_name }}
+          name: ${{ steps.release_meta.outputs.release_name }}
+          files: dist/AutoBaomiGuanUI.exe
+          generate_release_notes: true
+          fail_on_unmatched_files: true
